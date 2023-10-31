@@ -17,20 +17,32 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import FileUploader from "../shared/FileUploader";
 import { PostFormValidationSchema } from "@/lib/validation";
-import { useCreatePost } from "@/lib/react-query/queriesAndMutations";
+import {
+  useCreatePost,
+  useDeletePost,
+  useUpdatePost,
+} from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/AuthContext";
 import { useToast } from "../ui/use-toast";
 
 type PostFormProps = {
   post?: Models.Document;
+  action: "Create" | "Update";
 };
 
-const PostForm = ({ post }: PostFormProps) => {
+const PostForm = ({ post, action }: PostFormProps) => {
   const { user } = useUserContext();
   const { toast } = useToast();
   const navigate = useNavigate();
+
   const { mutateAsync: createPost, isPending: isLoadingCreate } =
     useCreatePost();
+
+  const { mutateAsync: updatePost, isPending: isLoadingUpdate } =
+    useUpdatePost();
+
+  const { mutateAsync: deletePost, isPending: isLoadingDelete } =
+    useDeletePost();
 
   const form = useForm<z.infer<typeof PostFormValidationSchema>>({
     resolver: zodResolver(PostFormValidationSchema),
@@ -43,6 +55,23 @@ const PostForm = ({ post }: PostFormProps) => {
   });
 
   async function onSubmit(values: z.infer<typeof PostFormValidationSchema>) {
+    if (post && action === "Update") {
+      const updatedPost = await updatePost({
+        ...values,
+        postId: post.$id,
+        imageId: post?.ImageId,
+        imageUrl: post?.ImageUrl,
+      });
+
+      if (!updatedPost) {
+        toast({
+          title: "Please try again",
+        });
+      }
+
+      return navigate(`/posts/${post?.$id}`);
+    }
+
     const newPost = await createPost({
       ...values,
       userId: user.id,
@@ -88,7 +117,7 @@ const PostForm = ({ post }: PostFormProps) => {
               <FormControl>
                 <FileUploader
                   fieldChange={field.onChange}
-                  mediaUrl={post?.imageUrl}
+                  mediaUrl={post?.ImageUrl}
                 />
               </FormControl>
               <FormMessage className="shad-form_message" />
@@ -134,10 +163,14 @@ const PostForm = ({ post }: PostFormProps) => {
           </Button>
           <Button
             type="submit"
-            disabled={isLoadingCreate}
+            disabled={isLoadingCreate || isLoadingDelete || isLoadingUpdate}
             className="shad-button_primary whitespace-nowrap"
           >
-            Submit
+            {isLoadingCreate || isLoadingUpdate ? (
+              "Loading..."
+            ) : (
+              <>{action} Post</>
+            )}
           </Button>
         </div>
       </form>
