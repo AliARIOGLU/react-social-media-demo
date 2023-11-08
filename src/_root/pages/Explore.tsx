@@ -8,10 +8,10 @@ import {
 } from "@/lib/react-query/queriesAndMutations";
 import useDebounce from "@/hooks/useDebounce";
 import Loader from "@/components/shared/Loader";
-import { useInview } from "react-intersection-observer";
+import { useInView } from "react-intersection-observer";
 
 const Explore = () => {
-  const { ref, inView } = useInview();
+  const { ref, inView } = useInView();
   const { data: posts, fetchNextPage, hasNextPage } = useGetPosts();
 
   const [searchValue, setSearchValue] = useState("");
